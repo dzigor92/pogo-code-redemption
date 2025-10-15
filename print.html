@@ -134,21 +134,6 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       const sheet = document.getElementById("sheet");
       const printAction = document.getElementById("printAction");
 
-      const parsePendingFromQuery = () => {
-        const params = new URLSearchParams(window.location.search);
-        if (!params.has("pending")) {
-          return null;
-        }
-
-        const raw = params.get("pending");
-        if (typeof raw !== "string") {
-          return null;
-        }
-
-        const list = raw.split("|").map((code) => code.trim()).filter(Boolean);
-        return list.length ? list : [];
-      };
-
       const loadState = () => {
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
@@ -199,17 +184,13 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       });
 
       const init = () => {
-        let pendingCodes = parsePendingFromQuery();
-        const usedQuery = Array.isArray(pendingCodes);
-
-        if (!pendingCodes) {
-          const data = loadState();
-          if (!data) {
-            showMessage("No stored session detected. Go back, load your codes, and try again.");
-            return;
-          }
-          pendingCodes = Array.isArray(data.pending) ? data.pending : [];
+        const data = loadState();
+        if (!data) {
+          showMessage("No stored session detected. Go back, load your codes, and try again.");
+          return;
         }
+
+        const pendingCodes = Array.isArray(data.pending) ? data.pending : [];
 
         if (pendingCodes.length === 0) {
           showMessage("All caught up! There are no pending codes to print right now.");
@@ -220,7 +201,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           sheet.appendChild(buildCard(code));
         });
 
-        showMessage(`Generated ${pendingCodes.length} printable card${pendingCodes.length === 1 ? "" : "s"} for your pending codes${usedQuery ? "" : " (loaded from your saved session)"}.`);
+        showMessage(`Generated ${pendingCodes.length} printable card${pendingCodes.length === 1 ? "" : "s"} for your pending codes (loaded from your saved session).`);
       };
 
       document.addEventListener("DOMContentLoaded", init);

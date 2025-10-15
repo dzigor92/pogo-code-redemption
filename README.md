@@ -21,7 +21,7 @@ This repository hosts a single-page helper that streamlines handing out Pokémon
 
 > Tip: You can press `Ctrl+Enter` (`⌘+Enter` on macOS) while the textarea is focused to load codes quickly.
 > Bonus: If you refresh the page, the pending list will be restored automatically and the textarea will repopulate so you can keep going.
-> Need printed codes? Press **Printable sheet** and download/print the generated template.
+> Need printed codes? Press **Printable sheet** and download/print the generated template. (Debe abrirse desde el mismo navegador, porque la hoja usa los códigos guardados localmente).
 
 ## Embedding in Google Sites
 
@@ -57,7 +57,7 @@ Recomendaciones:
 - Mantengan la página abierta y eviten refrescarla innecesariamente para no interrumpir el flujo.
 - Si hay varios embajadores, dividan los códigos en bloques diferentes para evitar duplicados.
 - Ante un error al cargar, revisen que no haya espacios en blanco extra; la herramienta filtra códigos vacíos automáticamente.
-- Si necesitan entregar códigos impresos, presionen **Printable sheet** y utilicen la hoja generada; solo incluye los códigos pendientes.
+- Si necesitan entregar códigos impresos, presionen **Printable sheet** y utilicen la hoja generada; solo incluye los códigos pendientes. Asegúrense de abrir la hoja desde el mismo navegador donde cargaron los códigos, porque lee la sesión guardada.
 - Al terminar el evento, usen **Reset session** (o borren los datos del navegador) para que nadie más vea códigos entregados previamente.
 
 ## Customising

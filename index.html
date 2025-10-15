@@ -555,12 +555,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         elements.resetButton.addEventListener("click", resetSession);
         elements.printButton.addEventListener("click", () => {
           persistState();
-          const params = new URLSearchParams();
-          if (state.pending.length > 0) {
-            params.set("pending", state.pending.join("|"));
-          }
-          const destination = params.toString() ? `print.html?${params.toString()}` : "print.html";
-          window.open(destination, "_blank", "noopener");
+          window.open("print.html", "_blank", "noopener");
         });
         elements.nextButton.addEventListener("click", giveNextCode);
         elements.markRedeemedButton.addEventListener("click", markRedeemed);
