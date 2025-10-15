@@ -317,6 +317,77 @@
         current: null,
       };
 
+      const STORAGE_KEY = "pogo-code-helper-state";
+      const storage = {
+        load() {
+          try {
+            const raw = window.localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+              return null;
+            }
+
+            const parsed = JSON.parse(raw);
+            if (
+              !parsed ||
+              !Array.isArray(parsed.pending) ||
+              !Array.isArray(parsed.redeemed)
+            ) {
+              return null;
+            }
+
+            const current =
+              typeof parsed.current === "string" ? parsed.current : null;
+
+            return {
+              pending: parsed.pending,
+              redeemed: parsed.redeemed,
+              current,
+            };
+          } catch (error) {
+            console.warn("Unable to load stored giveaway session.", error);
+            return null;
+          }
+        },
+        save(snapshot) {
+          try {
+            window.localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify(snapshot),
+            );
+          } catch (error) {
+            console.warn("Unable to persist giveaway session.", error);
+          }
+        },
+        clear() {
+          try {
+            window.localStorage.removeItem(STORAGE_KEY);
+          } catch (error) {
+            console.warn("Unable to clear stored giveaway session.", error);
+          }
+        },
+      };
+
+      const persistState = () => {
+        if (
+          state.pending.length === 0 &&
+          state.redeemed.length === 0 &&
+          !state.current
+        ) {
+          storage.clear();
+          return;
+        }
+
+        storage.save({
+          pending: state.pending,
+          redeemed: state.redeemed,
+          current: state.current,
+        });
+      };
+
+      const syncTextareaWithPending = () => {
+        elements.codeInput.value = state.pending.join("\n");
+      };
+
       const elements = {
         codeInput: document.getElementById("codeInput"),
         loadButton: document.getElementById("loadButton"),
@@ -435,6 +506,8 @@
         state.current = null;
 
         setStatus(`Loaded ${codes.length} code${codes.length === 1 ? "" : "s"}. Ready when you are!`, "success");
+        persistState();
+        syncTextareaWithPending();
         updateUI();
       };
 
@@ -445,6 +518,7 @@
 
         [state.current] = state.pending;
         setStatus("Share this code with the next trainer.", "success");
+        persistState();
         updateUI();
       };
 
@@ -459,6 +533,8 @@
         state.current = null;
 
         setStatus("Marked as redeemed. You can hand out the next code.", "success");
+        persistState();
+        syncTextareaWithPending();
         updateUI();
       };
 
@@ -467,8 +543,9 @@
         state.redeemed = [];
         state.current = null;
 
-        elements.codeInput.value = "";
         setStatus("Session reset. Load a new batch of codes whenever you're ready.", "info");
+        persistState();
+        syncTextareaWithPending();
         updateUI();
       };
 
@@ -486,7 +563,19 @@
 
         elements.noCodesMessage.hidden = true;
         elements.noHistoryMessage.hidden = false;
-        setStatus("Paste your codes to begin.", "info");
+
+        const restoredState = storage.load();
+        if (restoredState) {
+          state.pending = restoredState.pending;
+          state.redeemed = restoredState.redeemed;
+          state.current = restoredState.current;
+          setStatus("Session restored. Ready to continue.", "info");
+          syncTextareaWithPending();
+        } else {
+          setStatus("Paste your codes to begin.", "info");
+          syncTextareaWithPending();
+        }
+
         updateUI();
       };
 

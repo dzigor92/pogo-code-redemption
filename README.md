@@ -7,6 +7,7 @@ This repository hosts a single-page helper that streamlines handing out Pokémon
 - Paste a batch of codes (newline or comma separated) and load them into the tool.
 - Generate the official redemption link and QR code for the first pending code.
 - Mark codes as redeemed to keep a running history and avoid duplicates.
+- Resume exactly where you left off after a refresh thanks to automatic local storage.
 - Clear the session and load a fresh set whenever new codes arrive.
 
 ## Using the page locally
@@ -18,6 +19,7 @@ This repository hosts a single-page helper that streamlines handing out Pokémon
 5. After they redeem it, click **Mark as redeemed** to archive the code and move to the next one.
 
 > Tip: You can press `Ctrl+Enter` (`⌘+Enter` on macOS) while the textarea is focused to load codes quickly.
+> Bonus: If you refresh the page, the pending list will be restored automatically and the textarea will repopulate so you can keep going.
 
 ## Embedding in Google Sites
 
