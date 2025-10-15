@@ -232,6 +232,21 @@
       letter-spacing: 0.05em;
     }
 
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.6);
+      color: inherit;
+      font-size: 0.95rem;
+    }
+
+    select:focus {
+      outline: 2px solid rgba(59, 130, 246, 0.6);
+      outline-offset: 2px;
+    }
+
     .empty-state {
       margin-top: 16px;
       padding: 16px;
@@ -253,6 +268,14 @@
       <p class="help-text">
         Paste one code per line, then press “Load codes”. You can also paste comma-separated codes&mdash;they will be cleaned automatically.
       </p>
+      <label for="languageSelect">Redeem language</label>
+      <select id="languageSelect">
+        <option value="en">English</option>
+        <option value="es">Spanish</option>
+        <option value="pt">Portuguese</option>
+        <option value="de">German</option>
+        <option value="fr">French</option>
+      </select>
       <label for="codeInput">Bulk code list</label>
       <textarea id="codeInput" placeholder="ABCDEF123456&#10;LMNOPQ987654&#10;..."></textarea>
       <div class="button-row">
@@ -309,12 +332,15 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
   <script>
     (() => {
-      const BASE_REDEMPTION_URL = "https://store.pokemongo.com/es/offer-redemption?passcode=";
+
+      const SUPPORTED_LANGUAGES = ["en", "es", "pt", "de", "fr"];
+      const DEFAULT_LANGUAGE = "en";
 
       const state = {
         pending: [],
         redeemed: [],
         current: null,
+        language: DEFAULT_LANGUAGE,
       };
 
       const STORAGE_KEY = "pogo-code-helper-state";
@@ -337,11 +363,14 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
             const current =
               typeof parsed.current === "string" ? parsed.current : null;
+            const rawLanguage = typeof parsed.language === "string" ? parsed.language : DEFAULT_LANGUAGE;
+            const language = SUPPORTED_LANGUAGES.includes(rawLanguage) ? rawLanguage : DEFAULT_LANGUAGE;
 
             return {
               pending: parsed.pending,
               redeemed: parsed.redeemed,
               current,
+              language,
             };
           } catch (error) {
             console.warn("Unable to load stored giveaway session.", error);
@@ -358,29 +387,14 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
             console.warn("Unable to persist giveaway session.", error);
           }
         },
-        clear() {
-          try {
-            window.localStorage.removeItem(STORAGE_KEY);
-          } catch (error) {
-            console.warn("Unable to clear stored giveaway session.", error);
-          }
-        },
       };
 
       const persistState = () => {
-        if (
-          state.pending.length === 0 &&
-          state.redeemed.length === 0 &&
-          !state.current
-        ) {
-          storage.clear();
-          return;
-        }
-
         storage.save({
           pending: state.pending,
           redeemed: state.redeemed,
           current: state.current,
+          language: state.language,
         });
       };
 
@@ -392,6 +406,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         codeInput: document.getElementById("codeInput"),
         loadButton: document.getElementById("loadButton"),
         resetButton: document.getElementById("resetButton"),
+        languageSelect: document.getElementById("languageSelect"),
         printButton: document.getElementById("printButton"),
         nextButton: document.getElementById("nextButton"),
         markRedeemedButton: document.getElementById("markRedeemedButton"),
@@ -409,7 +424,10 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
       let qrCodeInstance = null;
 
-      const buildRedeemUrl = (code) => `${BASE_REDEMPTION_URL}${encodeURIComponent(code)}`;
+      const buildRedeemUrl = (code) => {
+        const lang = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : DEFAULT_LANGUAGE;
+        return `https://store.pokemongo.com/${lang}/offer-redemption?passcode=${encodeURIComponent(code)}`;
+      };
 
       const clearQr = () => {
         if (qrCodeInstance) {
@@ -487,6 +505,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       };
 
       const updateUI = () => {
+        elements.languageSelect.value = state.language;
         updateCounts();
         updateRedeemedList();
         updateCurrentCode();
@@ -557,6 +576,12 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           persistState();
           window.open("print.html", "_blank", "noopener");
         });
+        elements.languageSelect.addEventListener("change", (event) => {
+          const selected = event.target.value;
+          state.language = SUPPORTED_LANGUAGES.includes(selected) ? selected : DEFAULT_LANGUAGE;
+          persistState();
+          updateUI();
+        });
         elements.nextButton.addEventListener("click", giveNextCode);
         elements.markRedeemedButton.addEventListener("click", markRedeemed);
 
@@ -574,12 +599,14 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           state.pending = restoredState.pending;
           state.redeemed = restoredState.redeemed;
           state.current = restoredState.current;
+          state.language = restoredState.language;
           setStatus("Session restored. Ready to continue.", "info");
           syncTextareaWithPending();
         } else {
           setStatus("Paste your codes to begin.", "info");
           syncTextareaWithPending();
         }
+        elements.languageSelect.value = state.language;
 
         updateUI();
       };

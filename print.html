@@ -128,7 +128,9 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   <script>
     (() => {
       const STORAGE_KEY = "pogo-code-helper-state";
-      const BASE_REDEMPTION_URL = "https://store.pokemongo.com/es/offer-redemption?passcode=";
+      const SUPPORTED_LANGUAGES = ["en", "es", "pt", "de", "fr"];
+      const DEFAULT_LANGUAGE = "en";
+      let language = DEFAULT_LANGUAGE;
 
       const message = document.getElementById("message");
       const sheet = document.getElementById("sheet");
@@ -142,7 +144,12 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           if (!parsed || !Array.isArray(parsed.pending)) {
             return null;
           }
-          return parsed;
+          const rawLanguage = typeof parsed.language === "string" ? parsed.language : DEFAULT_LANGUAGE;
+          const language = SUPPORTED_LANGUAGES.includes(rawLanguage) ? rawLanguage : DEFAULT_LANGUAGE;
+          return {
+            pending: parsed.pending,
+            language,
+          };
         } catch (error) {
           console.warn("Unable to read stored state.", error);
           return null;
@@ -152,6 +159,11 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
       const showMessage = (text) => {
         message.textContent = text;
         message.hidden = false;
+      };
+
+      const buildRedeemUrl = (code) => {
+        const lang = SUPPORTED_LANGUAGES.includes(language) ? language : DEFAULT_LANGUAGE;
+        return `https://store.pokemongo.com/${lang}/offer-redemption?passcode=${encodeURIComponent(code)}`;
       };
 
       const buildCard = (code) => {
@@ -166,7 +178,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
         codeText.textContent = code;
         card.appendChild(codeText);
 
-        const url = `${BASE_REDEMPTION_URL}${encodeURIComponent(code)}`;
+        const url = buildRedeemUrl(code);
         new QRCode(qrContainer, {
           text: url,
           width: 160,
@@ -190,6 +202,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           return;
         }
 
+        language = data.language;
         const pendingCodes = Array.isArray(data.pending) ? data.pending : [];
 
         if (pendingCodes.length === 0) {
@@ -201,7 +214,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
           sheet.appendChild(buildCard(code));
         });
 
-        showMessage(`Generated ${pendingCodes.length} printable card${pendingCodes.length === 1 ? "" : "s"} for your pending codes (loaded from your saved session).`);
+        showMessage(`Generated ${pendingCodes.length} printable card${pendingCodes.length === 1 ? "" : "s"} for your pending codes (store language: ${language.toUpperCase()}, loaded from your saved session).`);
       };
 
       document.addEventListener("DOMContentLoaded", init);
