@@ -1,6 +1,6 @@
 # Pokémon GO Code Giveaway Helper
 
-> Static helper for handing out Pokémon GO passcodes during community events.
+> Static helper for handing out Pokémon GO digital codes during community events.
 
 This repository hosts a single-page helper that streamlines handing out Pokémon GO passcodes during community events.
 
