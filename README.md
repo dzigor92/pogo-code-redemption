@@ -1,5 +1,7 @@
 # Pokémon GO Code Giveaway Helper
 
+> Static helper for handing out Pokémon GO passcodes during community events.
+
 This repository hosts a single-page helper that streamlines handing out Pokémon GO passcodes during community events.
 
 ## Features
@@ -64,3 +66,10 @@ Recomendaciones:
 ## Customising
 
 All styling and logic lives inside `index.html`. Feel free to tweak the CSS or replace the QR generation logic with a preferred library if you need offline QR images.
+
+## Contributing
+
+Curious about helping out? Check the [contribution guidelines](CONTRIBUTING.md),
+review our [Code of Conduct](.github/CODE_OF_CONDUCT.md), and read the
+[security policy](.github/SECURITY.md) for responsible disclosure details.
+The project is licensed under the [MIT License](LICENSE).
