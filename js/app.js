@@ -2,6 +2,7 @@
 
   const SUPPORTED_LANGUAGES = ["en", "es", "pt", "de", "fr"];
   const DEFAULT_LANGUAGE = "en";
+  const HISTORY_PREVIEW_COUNT = 3;
 
   const state = {
     pending: [],
@@ -87,9 +88,11 @@
     redeemedList: document.getElementById("redeemedList"),
     noCodesMessage: document.getElementById("noCodesMessage"),
     noHistoryMessage: document.getElementById("noHistoryMessage"),
+    historyToggleButton: document.getElementById("historyToggleButton"),
   };
 
   let qrCodeInstance = null;
+  let historyExpanded = false;
 
   const buildRedeemUrl = (code) => {
     const lang = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : DEFAULT_LANGUAGE;
@@ -130,15 +133,34 @@
 
     if (state.redeemed.length === 0) {
       elements.noHistoryMessage.hidden = false;
+      elements.historyToggleButton.hidden = true;
+      historyExpanded = false;
       return;
     }
 
     elements.noHistoryMessage.hidden = true;
-    state.redeemed.forEach((code) => {
+
+    const hasMoreThanPreview = state.redeemed.length > HISTORY_PREVIEW_COUNT;
+    if (!hasMoreThanPreview) {
+      historyExpanded = false;
+    }
+
+    const codesToShow = historyExpanded
+      ? state.redeemed
+      : state.redeemed.slice(0, HISTORY_PREVIEW_COUNT);
+
+    codesToShow.forEach((code) => {
       const listItem = document.createElement("li");
       listItem.textContent = code;
       elements.redeemedList.appendChild(listItem);
     });
+
+    elements.historyToggleButton.hidden = !hasMoreThanPreview;
+    if (hasMoreThanPreview) {
+      elements.historyToggleButton.textContent = historyExpanded
+        ? "Hide full history"
+        : `Show all (${state.redeemed.length})`;
+    }
   };
 
   const updateCurrentCode = () => {
@@ -250,7 +272,11 @@
       updateUI();
     });
     elements.nextButton.addEventListener("click", giveNextCode);
-    elements.markRedeemedButton.addEventListener("click", markRedeemed);
+        elements.markRedeemedButton.addEventListener("click", markRedeemed);
+        elements.historyToggleButton.addEventListener("click", () => {
+          historyExpanded = !historyExpanded;
+          updateRedeemedList();
+        });
 
     elements.codeInput.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
