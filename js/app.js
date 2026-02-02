@@ -3,6 +3,7 @@
   const SUPPORTED_LANGUAGES = ["en", "es", "pt", "de", "fr"];
   const DEFAULT_LANGUAGE = "en";
   const HISTORY_PREVIEW_COUNT = 3;
+  const HISTORY_QR_SIZE = 170;
 
   const state = {
     pending: [],
@@ -93,6 +94,9 @@
 
   let qrCodeInstance = null;
   let historyExpanded = false;
+  let expandedRedeemedIndex = null;
+  let collapsingRedeemedIndex = null;
+  let collapseTimer = null;
 
   const buildRedeemUrl = (code) => {
     const lang = SUPPORTED_LANGUAGES.includes(state.language) ? state.language : DEFAULT_LANGUAGE;
@@ -106,16 +110,20 @@
     }
   };
 
-  const renderQr = (text) => {
-    elements.qrCanvas.innerHTML = "";
-    qrCodeInstance = new QRCode(elements.qrCanvas, {
+  const renderQrTo = (target, text, size) => {
+    target.innerHTML = "";
+    return new QRCode(target, {
       text,
-      width: 220,
-      height: 220,
+      width: size,
+      height: size,
       colorDark: "#0f172a",
       colorLight: "#e2e8f0",
       correctLevel: QRCode.CorrectLevel.H,
     });
+  };
+
+  const renderQr = (text) => {
+    qrCodeInstance = renderQrTo(elements.qrCanvas, text, 220);
   };
 
   const parseCodes = (rawInput) => rawInput
@@ -126,6 +134,55 @@
   const setStatus = (message = "", type = "") => {
     elements.statusMessage.textContent = message;
     elements.statusMessage.dataset.type = type;
+  };
+
+  const clearCollapseTimer = () => {
+    if (collapseTimer) {
+      window.clearTimeout(collapseTimer);
+      collapseTimer = null;
+    }
+  };
+
+  const resetRedeemedExpansion = () => {
+    expandedRedeemedIndex = null;
+    collapsingRedeemedIndex = null;
+    clearCollapseTimer();
+  };
+
+  const scheduleCollapseCleanup = () => {
+    clearCollapseTimer();
+    collapseTimer = window.setTimeout(() => {
+      collapsingRedeemedIndex = null;
+      collapseTimer = null;
+      updateRedeemedList();
+    }, 300);
+  };
+
+  const toggleRedeemedPreview = (index) => {
+    if (index === null || index === undefined) {
+      return;
+    }
+
+    if (expandedRedeemedIndex === index) {
+      expandedRedeemedIndex = null;
+      collapsingRedeemedIndex = index;
+      scheduleCollapseCleanup();
+      updateRedeemedList();
+      return;
+    }
+
+    if (collapsingRedeemedIndex === index) {
+      collapsingRedeemedIndex = null;
+      clearCollapseTimer();
+    }
+
+    if (expandedRedeemedIndex !== null) {
+      collapsingRedeemedIndex = expandedRedeemedIndex;
+      scheduleCollapseCleanup();
+    }
+
+    expandedRedeemedIndex = index;
+    updateRedeemedList();
   };
 
   const updateRedeemedList = () => {
@@ -145,13 +202,67 @@
       historyExpanded = false;
     }
 
-    const codesToShow = historyExpanded
-      ? state.redeemed
-      : state.redeemed.slice(0, HISTORY_PREVIEW_COUNT);
+    const redeemedEntries = state.redeemed.map((code, index) => ({
+      code,
+      index,
+    }));
+    const entriesToShow = historyExpanded
+      ? redeemedEntries
+      : redeemedEntries.slice(0, HISTORY_PREVIEW_COUNT);
 
-    codesToShow.forEach((code) => {
+    entriesToShow.forEach(({ code, index }) => {
       const listItem = document.createElement("li");
-      listItem.textContent = code;
+      const isExpanded = expandedRedeemedIndex === index;
+      const isCollapsing = collapsingRedeemedIndex === index;
+      const preview = document.createElement("div");
+      const button = document.createElement("button");
+
+      listItem.className = "history-entry";
+      if (isExpanded) {
+        listItem.classList.add("expanded");
+      }
+      if (isCollapsing) {
+        listItem.classList.add("collapsing");
+      }
+      button.type = "button";
+      button.className = "history-item";
+      button.textContent = code;
+      button.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+      button.setAttribute("aria-label", `Toggle redeemed code details for ${code}`);
+      button.addEventListener("click", () => toggleRedeemedPreview(index));
+
+      preview.className = "history-preview";
+      preview.hidden = !(isExpanded || isCollapsing);
+
+      if (isExpanded || isCollapsing) {
+        const url = buildRedeemUrl(code);
+        const hint = document.createElement("div");
+        const codeValue = document.createElement("div");
+        const link = document.createElement("a");
+        const qrWrapper = document.createElement("div");
+        const qrSurface = document.createElement("div");
+
+        hint.className = "history-preview-hint";
+        hint.textContent = "Redeemed code preview. Scan again if the trainer needs it.";
+
+        codeValue.className = "history-code-value";
+        codeValue.textContent = code;
+
+        link.className = "history-redeem-link";
+        link.href = url;
+        link.textContent = url;
+        link.target = "_blank";
+        link.rel = "noreferrer noopener";
+
+        qrWrapper.className = "history-qr-wrapper";
+        qrSurface.className = "history-qr-surface";
+        qrWrapper.appendChild(qrSurface);
+        renderQrTo(qrSurface, url, HISTORY_QR_SIZE);
+
+        preview.append(hint, codeValue, link, qrWrapper);
+      }
+
+      listItem.append(button, preview);
       elements.redeemedList.appendChild(listItem);
     });
 
@@ -213,6 +324,7 @@
     state.pending = codes;
     state.redeemed = [];
     state.current = null;
+    resetRedeemedExpansion();
 
     setStatus(`Loaded ${codes.length} code${codes.length === 1 ? "" : "s"}. Ready when you are!`, "success");
     persistState();
@@ -226,6 +338,7 @@
     }
 
     [state.current] = state.pending;
+    resetRedeemedExpansion();
     setStatus("Share this code with the next trainer.", "success");
     persistState();
     updateUI();
@@ -240,6 +353,7 @@
     state.pending = state.pending.slice(1);
     state.redeemed.unshift(redeemedCode);
     state.current = null;
+    resetRedeemedExpansion();
 
     setStatus("Marked as redeemed. You can hand out the next code.", "success");
     persistState();
@@ -251,6 +365,7 @@
     state.pending = [];
     state.redeemed = [];
     state.current = null;
+    resetRedeemedExpansion();
 
     setStatus("Session reset. Load a new batch of codes whenever you're ready.", "info");
     persistState();
@@ -272,12 +387,11 @@
       updateUI();
     });
     elements.nextButton.addEventListener("click", giveNextCode);
-        elements.markRedeemedButton.addEventListener("click", markRedeemed);
-        elements.historyToggleButton.addEventListener("click", () => {
-          historyExpanded = !historyExpanded;
-          updateRedeemedList();
-        });
-
+    elements.markRedeemedButton.addEventListener("click", markRedeemed);
+    elements.historyToggleButton.addEventListener("click", () => {
+      historyExpanded = !historyExpanded;
+      updateRedeemedList();
+    });
     elements.codeInput.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
         loadCodes();
@@ -293,6 +407,7 @@
       state.redeemed = restoredState.redeemed;
       state.current = restoredState.current;
       state.language = restoredState.language;
+      resetRedeemedExpansion();
       setStatus("Session restored. Ready to continue.", "info");
       syncTextareaWithPending();
     } else {
